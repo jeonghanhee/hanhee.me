@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>hanhee.me</title>
+  <link rel="icon" href="/favicon.ico" type="image/x-icon">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div id="hint">스크롤/핀치: 줌 · 우클릭+드래그: 패닝</div>
+  <div id="zoom-badge">100%</div>
+  <div id="toast"></div>
+
+  <div id="world"></div>
+
+  <div id="toolbar">
+    <div class="edit-group edit-only">
+      <button class="tb-btn" onclick="addPhoto()">포토</button>
+      <button class="tb-btn" onclick="addNote()">메모</button>
+
+      <button class="tb-btn" onclick="shuffleAll()">흩뿌리기</button>
+      <button class="tb-btn" onclick="saveState()" style="color:#ffd">저장</button>
+      <div class="sep"></div>
+    </div>
+
+    <button class="tb-btn" onclick="resetView()">가운데 뷰로 이동</button>
+  </div>
+
+  <script src="/script.js"></script>
+  </body>
+</html>

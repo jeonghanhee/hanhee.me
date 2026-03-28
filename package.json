@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "@vercel/kv": "^3.0.0",
+    "ioredis": "^5.10.1",
+    "javascript-obfuscator": "^5.4.1"
+  },
+  "scripts": {
+    "build": "javascript-obfuscator public/script.js --output public/script.js"
+  }
+}
