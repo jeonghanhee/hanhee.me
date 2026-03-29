@@ -34,6 +34,8 @@ body {
     overflow: visible !important;
     touch-action: none;
     /* 카드 자체의 기본 스크롤 동작 방지 */
+    min-height: 50px;
+    /* New: 최소 높이 정의 */
 }
 
 body.edit .card {
@@ -43,8 +45,12 @@ body.edit .card {
 /* Rotation handle style */
 .rotate-handle {
     position: absolute;
-    right: -12px;
-    bottom: -12px;
+    left: -14px;
+    /* 오른쪽(right) 대신 왼쪽(left)으로 배치 */
+    top: 50%;
+    /* 세로축 정중앙 */
+    transform: translateY(-50%);
+    /* 정확한 수직 중앙 정렬 */
     width: 26px;
     height: 26px;
     background: #fff;
@@ -52,7 +58,6 @@ body.edit .card {
     border-radius: 50%;
     cursor: alias;
     display: none;
-    /* 기본 숨김 */
     align-items: center;
     justify-content: center;
     font-size: 14px;
@@ -61,14 +66,41 @@ body.edit .card {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
-/* Show rotary handle only when in edit mode */
-body.edit .rotate-handle {
+.resize-handle {
+    position: absolute;
+    right: -2px;
+    bottom: -2px;
+    width: 20px;
+    height: 20px;
+    cursor: nwse-resize;
+    /* 대각선 크기 조절 커서 */
+    display: none;
+    /* 기본 숨김 */
+    z-index: 35;
+    user-select: none;
+}
+
+.resize-handle::after {
+    content: '';
+    position: absolute;
+    right: 5px;
+    bottom: 5px;
+    width: 10px;
+    height: 10px;
+    border-right: 3px solid rgba(0, 0, 0, 0.5);
+    border-bottom: 3px solid rgba(0, 0, 0, 0.5);
+}
+
+/* Show rotary & resize handle only when in edit mode */
+body.edit .rotate-handle,
+body.edit .resize-handle {
     display: flex;
 }
 
-.rotate-handle:hover {
+.rotate-handle:hover,
+.resize-handle:hover::after {
     background: #eee;
-    transform: scale(1.1);
+    border-color: rgba(0, 0, 0, 0.9);
 }
 
 /* Edit mode-only UI control */

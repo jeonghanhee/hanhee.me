@@ -248,30 +248,37 @@ function makeDraggable(card) {
     ox = 0,
     oy = 0;
 
-  // Common Start Logic
+  // 공통 시작 로직
   const startDrag = (clientX, clientY) => {
     zIdx++;
     card.style.zIndex = zIdx;
     card.dataset.z = zIdx;
     dragging = true;
-    const r = card.getBoundingClientRect();
-    ox = (clientX - r.left) / vRef.s;
-    oy = (clientY - r.top) / vRef.s;
+    
+    const currentLeft = parseFloat(card.style.left) || 0;
+    const currentTop = parseFloat(card.style.top) || 0;
+
+    const worldX = (clientX - vRef.x) / vRef.s;
+    const worldY = (clientY - vRef.y) / vRef.s;
+
+    ox = worldX - currentLeft;
+    oy = worldY - currentTop;
   };
 
-  // Common movement logic
   const moveDrag = (clientX, clientY) => {
     if (dragging) {
-      const wr = world.getBoundingClientRect();
-      card.style.left = ((clientX - wr.left) / vRef.s - ox) + 'px';
-      card.style.top = ((clientY - wr.top) / vRef.s - oy) + 'px';
+      const worldX = (clientX - vRef.x) / vRef.s;
+      const worldY = (clientY - vRef.y) / vRef.s;
+
+      card.style.left = (worldX - ox) + 'px';
+      card.style.top = (worldY - oy) + 'px';
     }
   };
 
-  // Desktop Mouse Events
+  // 데스크톱 마우스 이벤트
   card.addEventListener('mousedown', e => {
-    if (!editMode) return; // Return if it's not in editing mode
-    if (e.button !== 0 || e.target.contentEditable === 'true' || e.target.classList.contains('rotate-handle')) return;
+    if (!editMode) return; // 편집모드가 아니면 리턴
+    if (e.button !== 0 || e.target.contentEditable === 'true' || e.target.classList.contains('rotate-handle') || e.target.classList.contains('resize-handle')) return;
     e.stopPropagation();
     startDrag(e.clientX, e.clientY);
   });
@@ -282,10 +289,10 @@ function makeDraggable(card) {
 
   document.addEventListener('mouseup', () => dragging = false);
 
-  // Add Mobile Touch Event
+  // 모바일 터치 이벤트
   card.addEventListener('touchstart', e => {
-    if (!editMode) return; // Return if it's not in editing mode
-    if (e.target.contentEditable === 'true' || e.target.classList.contains('rotate-handle')) return;
+    if (!editMode) return; // 편집모드가 아니면 리턴
+    if (e.target.contentEditable === 'true' || e.target.classList.contains('rotate-handle') || e.target.classList.contains('resize-handle')) return;
     e.stopPropagation();
     const touch = e.touches[0];
     startDrag(touch.clientX, touch.clientY);
@@ -297,7 +304,7 @@ function makeDraggable(card) {
     if (dragging) {
       const touch = e.touches[0];
       moveDrag(touch.clientX, touch.clientY);
-      e.preventDefault(); // Scrolling Protection
+      e.preventDefault(); // 스크롤 방지
     }
   }, {
     passive: false
@@ -307,74 +314,144 @@ function makeDraggable(card) {
 }
 
 function makeRotatable(card) {
-  const handle = document.createElement('div');
-  handle.className = 'rotate-handle';
-  handle.innerHTML = '↻';
-  card.appendChild(handle);
+	const handle = document.createElement('div');
+	handle.className = 'rotate-handle';
+	handle.innerHTML = '↻';
+	card.appendChild(handle);
 
-  let rotating = false;
+	let rotating = false;
+	let startAngle = 0;
+	let baseRot = 0;
 
-  const startRotate = (clientX, clientY) => {
-    rotating = true;
-    const rect = card.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
+	const getCenter = () => {
+		const rect = card.getBoundingClientRect();
+		return {
+			x: rect.left + rect.width / 2,
+			y: rect.top + rect.height / 2
+		};
+	};
 
-    const onMove = (x, y) => {
-      if (!rotating) return;
-      const dx = x - centerX;
-      const dy = y - centerY;
-      let angle = Math.atan2(dy, dx) * (180 / Math.PI);
-      angle -= 45; // Correction of handle position
+	const startRotate = (clientX, clientY) => {
+		rotating = true;
+		const center = getCenter();
+		
+		const dx = clientX - center.x;
+		const dy = clientY - center.y;
+		startAngle = Math.atan2(dy, dx) * (180 / Math.PI);
+		
+		baseRot = parseFloat(card.dataset.rot || 0);
+	};
 
-      card.style.transform = `rotate(${angle}deg)`;
-      card.dataset.rot = angle;
-    };
+	const moveRotate = (clientX, clientY) => {
+		if (!rotating) return;
+		const center = getCenter();
+		
+		const dx = clientX - center.x;
+		const dy = clientY - center.y;
+		const currentAngle = Math.atan2(dy, dx) * (180 / Math.PI);
+		
+		let angleDiff = currentAngle - startAngle;
+		let finalAngle = baseRot + angleDiff;
 
-    return onMove;
-  };
+		card.style.transform = `rotate(${finalAngle}deg)`;
+		card.dataset.rot = finalAngle;
+	};
 
-  // Mouse rotation
-  handle.addEventListener('mousedown', e => {
-    if (!editMode) return;
-    e.stopPropagation();
-    e.preventDefault();
+	handle.addEventListener('mousedown', e => {
+		if (!editMode) return;
+		e.stopPropagation();
+		e.preventDefault();
+		
+		startRotate(e.clientX, e.clientY);
 
-    const onMove = startRotate(e.clientX, e.clientY);
-    const onMouseMove = (me) => onMove(me.clientX, me.clientY);
-    const onMouseUp = () => {
-      rotating = false;
-      document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
-    };
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
-  });
+		const onMouseMove = (me) => moveRotate(me.clientX, me.clientY);
+		const onMouseUp = () => {
+			rotating = false;
+			document.removeEventListener('mousemove', onMouseMove);
+			document.removeEventListener('mouseup', onMouseUp);
+		};
+		document.addEventListener('mousemove', onMouseMove);
+		document.addEventListener('mouseup', onMouseUp);
+	});
 
-  // touch rotation
-  handle.addEventListener('touchstart', e => {
-    if (!editMode) return;
-    e.stopPropagation();
-    e.preventDefault();
+	handle.addEventListener('touchstart', e => {
+		if (!editMode) return;
+		e.stopPropagation();
+		e.preventDefault();
+		
+		const touch = e.touches[0];
+		startRotate(touch.clientX, touch.clientY);
 
-    const touch = e.touches[0];
-    const onMove = startRotate(touch.clientX, touch.clientY);
-    const onTouchMove = (te) => {
-      const t = te.touches[0];
-      onMove(t.clientX, t.clientY);
-    };
-    const onTouchEnd = () => {
-      rotating = false;
-      document.removeEventListener('touchmove', onTouchMove);
-      document.removeEventListener('touchend', onTouchEnd);
-    };
-    document.addEventListener('touchmove', onTouchMove, {
-      passive: false
-    });
-    document.addEventListener('touchend', onTouchEnd);
-  }, {
-    passive: false
-  });
+		const onTouchMove = (te) => {
+			const t = te.touches[0];
+			moveRotate(t.clientX, t.clientY);
+		};
+		const onTouchEnd = () => {
+			rotating = false;
+			document.removeEventListener('touchmove', onTouchMove);
+			document.removeEventListener('touchend', onTouchEnd);
+		};
+		document.addEventListener('touchmove', onTouchMove, { passive: false });
+		document.addEventListener('touchend', onTouchEnd);
+	}, { passive: false });
+}
+
+function makeResizable(card) {
+	const handle = document.createElement('div');
+	handle.className = 'resize-handle';
+	card.appendChild(handle);
+
+	let resizing = false;
+	let startW = 0, startX = 0;
+
+	const startResize = (clientX) => {
+		resizing = true;
+		startW = parseFloat(card.style.width);
+		startX = clientX;
+	};
+
+	const moveResize = (clientX) => {
+		if (!resizing) return;
+		
+		const rot = parseFloat(card.dataset.rot || 0) * (Math.PI / 180);
+		const dx = (clientX - startX) / vRef.s;
+		const effectiveDx = dx * Math.cos(rot);
+		const nw = Math.max(80, startW + effectiveDx);
+		card.style.width = nw + 'px';
+	};
+
+	handle.addEventListener('mousedown', e => {
+		if (!editMode) return;
+		e.stopPropagation();
+		e.preventDefault();
+		startResize(e.clientX);
+
+		const onMouseMove = (me) => moveResize(me.clientX);
+		const onMouseUp = () => {
+			resizing = false;
+			document.removeEventListener('mousemove', onMouseMove);
+			document.removeEventListener('mouseup', onMouseUp);
+		};
+		document.addEventListener('mousemove', onMouseMove);
+		document.addEventListener('mouseup', onMouseUp);
+	});
+
+	handle.addEventListener('touchstart', e => {
+		if (!editMode) return;
+		e.stopPropagation();
+		e.preventDefault();
+		const touch = e.touches[0];
+		startResize(touch.clientX);
+
+		const onTouchMove = (te) => moveResize(te.touches[0].clientX);
+		const onTouchEnd = () => {
+			resizing = false;
+			document.removeEventListener('touchmove', onTouchMove);
+			document.removeEventListener('touchend', onTouchEnd);
+		};
+		document.addEventListener('touchmove', onTouchMove, { passive: false });
+		document.addEventListener('touchend', onTouchEnd);
+	}, { passive: false });
 }
 
 function makeTape(card) {
@@ -430,14 +507,36 @@ function createPhotoCard({
   fileInput.accept = 'image/*';
   fileInput.style.display = 'none'
   fileInput.addEventListener('change', function() {
-    const file = this.files[0];
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = ev => {
-      imgWrap.innerHTML = `<img src="${ev.target.result}" draggable="false">`
-      imgWrap.appendChild(fileInput)
-    }
-    reader.readAsDataURL(file)
+      const file = this.files[0];
+      if (!file) return
+      const reader = new FileReader()
+      reader.onload = ev => {
+          const img = new Image();
+          img.onload = () => {
+              const canvas = document.createElement('canvas');
+              let width = img.width;
+              let height = img.height;
+
+              const MAX_WIDTH = 800;
+              if (width > MAX_WIDTH) {
+                  height = Math.round((height * MAX_WIDTH) / width);
+                  width = MAX_WIDTH;
+              }
+
+              canvas.width = width;
+              canvas.height = height;
+
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0, width, height);
+
+              const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+
+              imgWrap.innerHTML = `<img src="${compressedBase64}" draggable="false">`
+              imgWrap.appendChild(fileInput)
+          };
+          img.src = ev.target.result;
+      }
+      reader.readAsDataURL(file)
   })
   imgWrap.appendChild(fileInput)
 
@@ -467,6 +566,7 @@ function createPhotoCard({
 
   makeDraggable(card);
   makeRotatable(card);
+  makeResizable(card);
 
   attachColorPanel(card, 'photo');
   enableCardUI(card);
@@ -523,6 +623,7 @@ function createNoteCard({
 
   makeDraggable(card);
   makeRotatable(card);
+  makeResizable(card)
 
   attachColorPanel(card, 'note');
   enableCardUI(card);
