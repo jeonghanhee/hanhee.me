@@ -12,7 +12,11 @@ body {
     overflow: hidden;
     background: #1a1817;
     touch-action: none;
+    /* 브라우저 기본 줌/스크롤 방지 */
     font-family: 'Courier Prime', sans-serif;
+    -webkit-user-select: none;
+    /* 모바일 텍스트 드래그 선택 방지 */
+    user-select: none;
 }
 
 /* Infinite Canvas Area */
@@ -28,6 +32,8 @@ body {
     position: absolute;
     cursor: grab;
     overflow: visible !important;
+    touch-action: none;
+    /* 카드 자체의 기본 스크롤 동작 방지 */
 }
 
 body.edit .card {
@@ -133,6 +139,9 @@ body.edit .edit-only {
     min-height: 1em;
     white-space: pre-wrap;
     font-size: 16px;
+    -webkit-user-select: text;
+    /* 메모 작성시 텍스트 커서 활성화를 위해 켬 */
+    user-select: text;
 }
 
 /* delete button */
@@ -221,6 +230,8 @@ body.edit .del-btn {
     padding-bottom: 4px;
     outline: none;
     min-height: 1em;
+    -webkit-user-select: text;
+    user-select: text;
 }
 
 .photo-caption:empty::before {
