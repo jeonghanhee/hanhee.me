@@ -320,3 +320,24 @@ body.edit .photo-img-wrap:hover .photo-placeholder {
 body.edit .card.active .color-panel {
     display: flex;
 }
+
+/* ==========================================
+   ★ 스티커 스타일 (테두리 제거 버전)
+========================================== */
+.sticker-card {
+    background: transparent; /* 배경을 투명하게 */
+    padding: 0;             /* 여백 제거 */
+    border: none;           /* 테두리 제거 */
+    border-radius: 0;       /* 둥근 모서리 제거 */
+    /* 투명한 PNG 이미지 모양에 맞게 그림자를 드리우는 필터 */
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3)); 
+}
+
+.sticker-img-wrap img {
+    width: 100%;
+    display: block;
+}
+
+body.edit .sticker-card {
+    cursor: grab;
+}

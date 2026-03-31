@@ -491,7 +491,6 @@ function createPhotoCard({
   card.dataset.z = finalZ;
   if (finalZ > zIdx) zIdx = finalZ;
 
-  // Apply Background Color
   if (bgColor) card.style.background = bgColor;
 
   const imgWrap = document.createElement('div');
@@ -553,7 +552,6 @@ function createPhotoCard({
   cap.textContent = caption || ''
   cap.dataset.placeholder = '캡션 입력...'
 
-  // Apply text color
   if (textColor) cap.style.color = textColor;
   card.appendChild(cap)
 
@@ -580,6 +578,60 @@ function createPhotoCard({
   return card
 }
 
+function createStickerCard({
+  x,
+  y,
+  rot,
+  width,
+  imageSrc,
+  id,
+  z
+}) {
+  const card = document.createElement('div');
+  card.className = 'card sticker-card';
+  card.dataset.id = id || uid();
+  card.dataset.type = 'sticker';
+  card.style.width = (width || 120) + 'px'; // 기본 크기를 살짝 더 작게 조정
+
+  const finalZ = z || ++zIdx;
+  card.style.zIndex = finalZ;
+  card.dataset.z = finalZ;
+  if (finalZ > zIdx) zIdx = finalZ;
+
+  const imgWrap = document.createElement('div');
+  imgWrap.className = 'sticker-img-wrap';
+  
+  if (imageSrc) {
+    imgWrap.innerHTML = `<img src="${imageSrc}" draggable="false">`;
+  } else {
+    imgWrap.innerHTML = `<div class="photo-placeholder"><span>+</span></div>`;
+  }
+
+  card.appendChild(imgWrap);
+
+  const del = document.createElement('div');
+  del.className = 'del-btn';
+  del.textContent = '×';
+  del.onclick = () => card.remove();
+  card.appendChild(del);
+
+  makeDraggable(card);
+  makeRotatable(card);
+  makeResizable(card);
+
+  enableCardUI(card);
+
+  card.style.left = x + 'px';
+  card.style.top = y + 'px';
+  
+  const r = rot !== undefined ? rot : rand(-15, 15);
+  card.dataset.rot = r;
+  card.style.transform = `rotate(${r}deg)`;
+  
+  world.appendChild(card);
+  return card;
+}
+
 function createNoteCard({
   x,
   y,
@@ -597,7 +649,6 @@ function createNoteCard({
   card.dataset.type = 'note';
   card.style.width = (width || 190) + 'px';
 
-  // Apply Background Color
   card.style.background = noteColor || '#fef9c3'
 
   const finalZ = z || ++zIdx;
@@ -610,7 +661,6 @@ function createNoteCard({
   content.contentEditable = editMode;
   content.textContent = noteText || '메모 입력'
 
-  // Apply text color
   if (textColor) content.style.color = textColor;
 
   card.appendChild(content)
@@ -647,19 +697,16 @@ function attachColorPanel(card, type) {
   const textPicker = document.createElement('input');
   textPicker.type = 'color';
 
-  // Color Value Hex Conversion Utility
   const toHex = (colorStr) => {
     if (!colorStr) return null;
     const ctx = document.createElement('canvas').getContext('2d');
     ctx.fillStyle = colorStr;
-    return ctx.fillStyle; // Browser automatically returns it in #000000 format
+    return ctx.fillStyle; 
   }
 
-  // Initial Background Color Settings
   const currentBg = card.style.background;
   bgPicker.value = toHex(currentBg) || (type === 'note' ? '#fef9c3' : '#f4ede0');
 
-  // Initial text color setting
   const targetTextEl = type === 'note' ? card.querySelector('.note-content') : card.querySelector('.photo-caption');
   if (targetTextEl) {
     textPicker.value = toHex(targetTextEl.style.color) || '#000000';
@@ -669,19 +716,16 @@ function attachColorPanel(card, type) {
   panel.appendChild(textPicker);
   card.appendChild(panel);
 
-  // Change background color
   bgPicker.addEventListener('input', () => {
     card.style.background = bgPicker.value;
   });
 
-  // Change text color
   textPicker.addEventListener('input', () => {
     if (targetTextEl) targetTextEl.style.color = textPicker.value;
   });
 }
 
 function enableCardUI(card) {
-  // mouse click
   card.addEventListener('mousedown', (e) => {
     if (!editMode) return;
     document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
@@ -689,7 +733,6 @@ function enableCardUI(card) {
     e.stopPropagation();
   });
 
-  // Mobile Touch
   card.addEventListener('touchstart', (e) => {
     if (!editMode) return;
     document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
@@ -705,6 +748,7 @@ function renderCards(cards) {
   const sorted = [...cards].sort((a, b) => (a.z || 0) - (b.z || 0))
   sorted.forEach(c => {
     if (c.type === 'photo') createPhotoCard(c)
+    else if (c.type === 'sticker') createStickerCard(c)
     else createNoteCard(c)
   })
   if (cards.length > 0) {
@@ -735,6 +779,12 @@ function collectCards() {
         caption: cap ? cap.textContent : null,
         bgColor: card.style.background || null,
         textColor: cap ? cap.style.color : null
+      })
+    } else if (type === 'sticker') {
+      const img = card.querySelector('img')
+      cards.push({
+        ...base,
+        imageSrc: img ? img.src : null
       })
     } else {
       const content = card.querySelector('.note-content')
@@ -823,6 +873,53 @@ function addNote() {
     y: c.y - 50,
     noteColor: NOTE_COLORS[randInt(0, NOTE_COLORS.length - 1)]
   })
+}
+
+function addSticker() {
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = 'image/*';
+  fileInput.style.display = 'none';
+
+  fileInput.addEventListener('change', function() {
+    const file = this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        const MAX_WIDTH = 400;
+        if (width > MAX_WIDTH) {
+          height = Math.round((height * MAX_WIDTH) / width);
+          width = MAX_WIDTH;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // ★ 투명도를 유지하기 위해 'image/png'로 포맷을 고정합니다.
+        const compressedBase64 = canvas.toDataURL('image/png', 0.8);
+
+        const c = worldCenter();
+        createStickerCard({
+          x: c.x - 60,
+          y: c.y - 60,
+          imageSrc: compressedBase64
+        });
+      };
+      img.src = ev.target.result;
+    }
+    reader.readAsDataURL(file);
+  });
+
+  fileInput.click();
 }
 
 function shuffleAll() {
